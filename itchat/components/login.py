@@ -1,4 +1,5 @@
 import os, sys, time, re, io
+import base64
 import threading
 import json, xml.dom.minidom
 import copy, pickle, random
@@ -49,7 +50,8 @@ def login(self, enableCmdQR=False, picDir=None, qrCallback=None,
             qrStorage = self.get_QR(enableCmdQR=enableCmdQR,
                 picDir=picDir, qrCallback=qrCallback)
             logger.info('Please scan the QR code to log in.')
-            scan_qr_code.send(self.uuid, type='scan_qr_code')
+            encoded = base64.b64encode(qrStorage.getvalue()).decode('ascii')
+            scan_qr_code.send(self.uuid, extra=encoded, type='scan_qr_code')
         isLoggedIn = False
         while not isLoggedIn:
             status, extra = self.check_login()
@@ -119,7 +121,12 @@ def get_QR(self, uuid=None, enableCmdQR=False, picDir=None, qrCallback=None):
     if hasattr(qrCallback, '__call__'):
         qrCallback(uuid=uuid, status='0', qrcode=qrStorage.getvalue())
     else:
-        if enableCmdQR:
+        if enableCmdQR is None:
+            utils.print_cmd_qr(qrCode.text(1), enableCmdQR=2)
+            with open(picDir, 'wb') as f:
+                f.write(qrStorage.getvalue())
+            utils.print_qr(picDir)
+        elif enableCmdQR:
             utils.print_cmd_qr(qrCode.text(1), enableCmdQR=enableCmdQR)
         else:
             with open(picDir, 'wb') as f:
